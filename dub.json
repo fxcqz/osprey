@@ -1,0 +1,12 @@
+{
+	"description": "Matrix Chat Client",
+	"dependencies": {
+		"gtk-d": "~>3.8.4"
+	},
+	"authors": [
+		"fxcqz"
+	],
+	"copyright": "Copyright © 2019, fxcqz",
+	"license": "GPLv3",
+	"name": "osprey"
+}
