@@ -16,3 +16,4 @@ osprey-test-*
 config.json
 osprey
 source/secret.d
+source/dotty_*.d
