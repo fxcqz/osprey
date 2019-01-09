@@ -7,6 +7,8 @@ import std.format : format;
 import std.json : JSONException, JSONValue, parseJSON;
 import std.net.curl : CurlException, get, HTTP, post, put;
 
+import room;
+
 static immutable string[string] NULL_PARAMS;
 
 struct Config {
@@ -46,7 +48,7 @@ struct Config {
 class Matrix {
 private:
   string userID, accessToken, nextBatch;
-  string[] roomIDs;
+  Room[] rooms;
   int txID;
   HTTP httpClient;
 
@@ -83,6 +85,7 @@ private:
 
 public:
   Config config;
+  string currentRoom; // TODO probably a hack
 
   this (Config config) {
     this.config = config;
@@ -111,7 +114,7 @@ public:
   }
 
   void join (string[] rooms ...)
-  out (; this.roomIDs.length > 0, "Must have joined at least one room")
+  out (; this.rooms.length > 0, "Must have joined at least one room")
   do {
     import std.string : translate;
     string[dchar] trTable = ['#' : "%23", ':' : "%3A"];
@@ -119,11 +122,13 @@ public:
       string tr = translate(room, trTable);
       try {
         JSONValue response = parseJSON(post(this.buildUrl("join/%s".format(tr)), `{}`));
-        this.roomIDs ~= response["room_id"].str;
+        this.rooms ~= Room(response["room_id"].str);
+        info("Successfully joined room: ", room);
       } catch (JSONException e) {
         warning("Warning: Failed to join the room: ", room);
       }
     }
+    this.currentRoom = this.rooms[0].roomID;
   }
 
   JSONValue sync () {
@@ -145,5 +150,25 @@ public:
     }
 
     return response;
+  }
+
+  void extractMessages(JSONValue data) {
+    // TODO make a better return type
+    foreach (room; this.rooms) {
+      string id = room.roomID;
+      try {
+        auto roomData = data["rooms"]["join"];
+        if (id in roomData) {
+          JSONValue events = roomData[id]["timeline"]["events"];
+          foreach (event; events.array) {
+            if ("body" in event["content"]) {
+              room.buffer ~= "<%s> %s".format(event["sender"].str, event["content"]["body"].str);
+            }
+          }
+        }
+      } catch (JSONException e) {
+        continue;
+      }
+    }
   }
 }
