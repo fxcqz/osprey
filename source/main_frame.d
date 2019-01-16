@@ -9,43 +9,10 @@ import gtk.Grid;
 import gtk.Entry;
 import gtk.Button;
 
+import commands;
 import matrix;
 import room;
 
-
-enum InternalCommand {
-  UNKNOWN,
-  LOGIN,
-}
-
-InternalCommand parseCommand(string text) {
-  import std.array : split;
-  import std.algorithm.searching : startsWith;
-  import std.uni : isWhite;
-
-  if (text.length < 2 || !text.startsWith("/")) {
-    return InternalCommand.UNKNOWN;
-  }
-
-  string[] command = text[1 .. $].split!isWhite;
-
-  if (command.length == 0) {
-    return InternalCommand.UNKNOWN;
-  }
-
-  InternalCommand result;
-
-  switch (command[0]) {
-  case "login":
-    result = InternalCommand.LOGIN;
-    break;
-  default:
-    result = InternalCommand.UNKNOWN;
-    break;
-  }
-
-  return result;
-}
 
 class MainFrame : MainWindow {
   // use getNthPage with this id to obtain the room widget
@@ -56,7 +23,20 @@ class MainFrame : MainWindow {
   Matrix connection;
 
   // UI stuff
+  Notebook roomPanels;
   Entry inputText;
+
+  void joinRoom(string room) {
+    bool connected = this.connection.join(room);
+    if (connected) {
+      auto scroller = new ScrolledWindow();
+      auto chatGrid = new Grid();
+      scroller.add(chatGrid);
+      this.currentPage = this.roomPanels.appendPage(scroller, room);
+      this.showAll();
+      this.roomPanels.setCurrentPage(this.currentPage);
+    }
+  }
 
   /// onSendMessage
   /// Do some parsing on the message to determine if it's an internal Osprey
@@ -67,15 +47,20 @@ class MainFrame : MainWindow {
     import std.stdio : writeln;
 
     string messageText = this.inputText.getText();
-    InternalCommand command = parseCommand(messageText);
-    final switch (command) {
-    case InternalCommand.UNKNOWN:
+    Command command = parseCommand(messageText);
+
+    final switch (command.kind) {
+    case CommandKind.UNKNOWN:
       // unknown command - probably a normal message so continue as expected
+      // TODO
       writeln(messageText);
       break;
-    case InternalCommand.LOGIN:
+    case CommandKind.LOGIN:
       this.connection.login();
-      writeln("Successfully logged in");
+      break;
+    case CommandKind.JOIN:
+      // TODO we just handle joining one room for the time being
+      this.joinRoom(command.args[0]);
       break;
     }
 
@@ -109,15 +94,15 @@ class MainFrame : MainWindow {
     auto mainBox = new Box(Orientation.VERTICAL, 0);
 
     // room panes
-    auto notebook = new Notebook();
+    this.roomPanels = new Notebook();
     auto scroller = new ScrolledWindow();
 
     auto chatGrid = new Grid();
     scroller.add(chatGrid);
 
-    this.currentPage = notebook.appendPage(scroller, "Welcome");
+    this.currentPage = this.roomPanels.appendPage(scroller, "Welcome");
 
-    mainBox.packStart(notebook, true, true, 0);
+    mainBox.packStart(this.roomPanels, true, true, 0);
 
     // text entry
     auto inputBox = new Box(Orientation.HORIZONTAL, 0);
@@ -134,6 +119,6 @@ class MainFrame : MainWindow {
     mainBox.packStart(inputBox, false, false, 0);
 
     this.add(mainBox);
-    showAll();
+    this.showAll();
   }
 }

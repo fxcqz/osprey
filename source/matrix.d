@@ -85,7 +85,7 @@ private:
 
 public:
   Config config;
-  string currentRoom; // TODO probably a hack... unused?
+  bool connected = false;
 
   this (Config config) {
     this.config = config;
@@ -110,11 +110,13 @@ public:
       exit(-1);
     }
 
+    this.connected = true;
     info("Successfully logged in");
   }
 
-  void join (string[] rooms ...)
+  bool join (string[] rooms ...)
   in (this.accessToken.length > 0, "Must be logged in first")
+  // TODO this contract is meaningless for an existing connection
   out (; this.rooms.length > 0, "Must have joined at least one room")
   do {
     import std.string : translate;
@@ -125,11 +127,12 @@ public:
         JSONValue response = parseJSON(post(this.buildUrl("join/%s".format(tr)), `{}`));
         this.rooms ~= Room(response["room_id"].str);
         info("Successfully joined room: ", room);
+        return true;
       } catch (JSONException e) {
         warning("Warning: Failed to join the room: ", room);
       }
     }
-    this.currentRoom = this.rooms[0].roomID;
+    return false;
   }
 
   JSONValue sync () {
