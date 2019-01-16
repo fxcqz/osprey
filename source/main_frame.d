@@ -1,5 +1,8 @@
 module main_frame;
 
+import std.json;
+import std.stdio : writeln;
+
 import gtk.MainWindow;
 import gtk.Label;
 import gtk.Box;
@@ -9,9 +12,32 @@ import gtk.Grid;
 import gtk.Entry;
 import gtk.Button;
 
+import glib.Timeout;
+
 import commands;
 import matrix;
 import room;
+
+
+class ChatPane : ScrolledWindow {
+  Grid grid;
+  int currentLine;
+
+  this() {
+    super();
+    this.grid = new Grid();
+    this.add(this.grid);
+  }
+
+  void addMessage(string message) {
+    Label label = new Label(message);
+    label.setSelectable(true);
+    label.setXalign(0);
+    label.setLineWrap(true);
+    this.grid.attach(label, 0, this.currentLine, 1, 1);
+    this.currentLine += 1;
+  }
+}
 
 
 class MainFrame : MainWindow {
@@ -19,23 +45,58 @@ class MainFrame : MainWindow {
   int currentPage;
   // map room id's to room objects (would this be better with page id?)
   Room[string] rooms;
+  Room currentRoom;
   // main matrix connection member
   Matrix connection;
 
   // UI stuff
   Notebook roomPanels;
   Entry inputText;
+  Timeout updateTimeout;
+
+  void sync() {
+    // do a general sync of matrix and send messaged to their respective rooms
+    // TODO run in another thread?
+    JSONValue data = this.connection.sync();
+    this.connection.extractMessages(data);
+  }
 
   void joinRoom(string room) {
     bool connected = this.connection.join(room);
     if (connected) {
-      auto scroller = new ScrolledWindow();
-      auto chatGrid = new Grid();
-      scroller.add(chatGrid);
-      this.currentPage = this.roomPanels.appendPage(scroller, room);
+      // initial sync
+      this.sync();
+
+      // setup ui for new room
+      auto pane = new ChatPane();
+
+      this.currentPage = this.roomPanels.appendPage(pane, room);
       this.showAll();
       this.roomPanels.setCurrentPage(this.currentPage);
+
+      // most recently added room is the relevant one
+      this.currentRoom = this.connection.rooms[$ - 1];
+      this.rooms[this.currentRoom.roomID] = this.currentRoom;
+
+      if (this.updateTimeout is null) {
+        this.updateTimeout = new Timeout(&this.updateChat, 1, true);
+      }
     }
+  }
+
+  bool updateChat() {
+    // looks for new messages in the current room's buffer
+    // TODO receive from another thread
+    ChatPane panel = cast(ChatPane) this.roomPanels.getNthPage(this.currentPage);
+
+    foreach (msg; this.currentRoom.buffer) {
+      panel.addMessage(msg);
+    }
+
+    panel.showAll();
+    this.currentRoom.buffer = [];
+
+    return true;
   }
 
   /// onSendMessage
@@ -44,8 +105,6 @@ class MainFrame : MainWindow {
   /// This function will call sendMessage if it determines there is something
   /// worth sending. Then it will clear the UI text entry.
   void onSendMessage() {
-    import std.stdio : writeln;
-
     string messageText = this.inputText.getText();
     Command command = parseCommand(messageText);
 
@@ -95,12 +154,9 @@ class MainFrame : MainWindow {
 
     // room panes
     this.roomPanels = new Notebook();
-    auto scroller = new ScrolledWindow();
+    ChatPane welcomePane = new ChatPane();
 
-    auto chatGrid = new Grid();
-    scroller.add(chatGrid);
-
-    this.currentPage = this.roomPanels.appendPage(scroller, "Welcome");
+    this.currentPage = this.roomPanels.appendPage(welcomePane, "Welcome");
 
     mainBox.packStart(this.roomPanels, true, true, 0);
 

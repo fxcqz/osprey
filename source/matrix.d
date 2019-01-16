@@ -48,7 +48,6 @@ struct Config {
 class Matrix {
 private:
   string userID, accessToken, nextBatch;
-  Room[] rooms;
   int txID;
   HTTP httpClient;
 
@@ -85,6 +84,7 @@ private:
 
 public:
   Config config;
+  Room[] rooms;
   bool connected = false;
 
   this (Config config) {
@@ -125,7 +125,7 @@ public:
       string tr = translate(room, trTable);
       try {
         JSONValue response = parseJSON(post(this.buildUrl("join/%s".format(tr)), `{}`));
-        this.rooms ~= Room(response["room_id"].str);
+        this.rooms ~= new Room(response["room_id"].str);
         info("Successfully joined room: ", room);
         return true;
       } catch (JSONException e) {

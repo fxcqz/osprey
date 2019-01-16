@@ -1,6 +1,6 @@
 module room;
 
-struct Room {
+class Room {
   string roomID;
   string[] buffer;
 
