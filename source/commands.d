@@ -1,7 +1,8 @@
 module commands;
 
 enum CommandKind {
-  UNKNOWN,
+  UNKNOWN, // TODO probably use a better name
+  INVALID,
   LOGIN,
   JOIN,
 }
@@ -30,16 +31,15 @@ Command parseCommand(string text) {
   import std.conv : to;
   import std.uni : isWhite;
 
-  if (text.length < 2 || !text.startsWith("/")) {
+  if (!text.startsWith("/")) {
     return Command(CommandKind.UNKNOWN);
+  }
+
+  if (text.length < 2) {
+    return Command(CommandKind.INVALID);
   }
 
   string[] txtCommand = text[1 .. $].split!isWhite;
-
-  if (txtCommand.length == 0) {
-    return Command(CommandKind.UNKNOWN);
-  }
-
   Command result;
 
   switch (txtCommand[0]) {

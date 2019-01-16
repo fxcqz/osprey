@@ -175,4 +175,17 @@ public:
       }
     }
   }
+
+  void sendMessage(string roomID, string message, string type = "m.text") {
+    string url = this.buildUrl("rooms/%s/send/m.room.message/%d".format(roomID, this.txID));
+    string data = `{
+      "body": "%s", "msgtype": "%s"
+    }`.format(message, type);
+    try {
+      put(url, data);
+      this.txID += 1;
+    } catch (CurlException e) {
+      warning("WARNING: Failed to send message due to connection error");
+    }
+  }
 }

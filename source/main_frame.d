@@ -98,6 +98,11 @@ class MainFrame : MainWindow {
     return true;
   }
 
+  void sendMessage(string message) {
+    this.connection.sendMessage(this.currentRoom.roomID, message);
+    this.updateChat();
+  }
+
   /// onSendMessage
   /// Do some parsing on the message to determine if it's an internal Osprey
   /// command.
@@ -111,7 +116,7 @@ class MainFrame : MainWindow {
     case CommandKind.UNKNOWN:
       // unknown command - probably a normal message so continue as expected
       // TODO
-      writeln(messageText);
+      this.sendMessage(messageText);
       break;
     case CommandKind.LOGIN:
       this.connection.login();
@@ -119,6 +124,9 @@ class MainFrame : MainWindow {
     case CommandKind.JOIN:
       // TODO we just handle joining one room for the time being
       this.joinRoom(command.args[0]);
+      break;
+    case CommandKind.INVALID:
+      // invalid command... do nothing
       break;
     }
 
