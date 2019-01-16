@@ -24,6 +24,7 @@ class ChatPane : ScrolledWindow {
   int currentLine;
 
   this() {
+    // TODO make messages stick to the bottom
     super();
     this.grid = new Grid();
     this.add(this.grid);
@@ -64,9 +65,6 @@ class MainFrame : MainWindow {
   void joinRoom(string room) {
     bool connected = this.connection.join(room);
     if (connected) {
-      // initial sync
-      this.sync();
-
       // setup ui for new room
       auto pane = new ChatPane();
 
@@ -87,6 +85,7 @@ class MainFrame : MainWindow {
   bool updateChat() {
     // looks for new messages in the current room's buffer
     // TODO receive from another thread
+    this.sync();
     ChatPane panel = cast(ChatPane) this.roomPanels.getNthPage(this.currentPage);
 
     foreach (msg; this.currentRoom.buffer) {
