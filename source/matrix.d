@@ -85,7 +85,7 @@ private:
 
 public:
   Config config;
-  string currentRoom; // TODO probably a hack
+  string currentRoom; // TODO probably a hack... unused?
 
   this (Config config) {
     this.config = config;
@@ -114,6 +114,7 @@ public:
   }
 
   void join (string[] rooms ...)
+  in (this.accessToken.length > 0, "Must be logged in first")
   out (; this.rooms.length > 0, "Must have joined at least one room")
   do {
     import std.string : translate;
