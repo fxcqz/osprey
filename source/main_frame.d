@@ -11,6 +11,7 @@ import gtk.ScrolledWindow;
 import gtk.Grid;
 import gtk.Entry;
 import gtk.Button;
+import gtk.Widget;
 
 import glib.Timeout;
 
@@ -76,8 +77,11 @@ class MainFrame : MainWindow {
       this.currentRoom = this.connection.rooms[$ - 1];
       this.rooms[this.currentRoom.roomID] = this.currentRoom;
 
+      // a bit hacky, perhaps use a connected flag instead of this condition
       if (this.updateTimeout is null) {
         this.updateTimeout = new Timeout(&this.updateChat, 1, true);
+        // add the listener once we are connected to at least one room
+        this.roomPanels.addOnSwitchPage(&this.switchPage);
       }
     }
   }
@@ -148,6 +152,10 @@ class MainFrame : MainWindow {
     this.onSendMessage();
   }
 
+  void switchPage(Widget panel, uint id, Notebook nb) {
+    this.updateChat();
+  }
+
   this() {
     super("Osprey Client");
     setDefaultSize(640, 480);
@@ -161,8 +169,8 @@ class MainFrame : MainWindow {
 
     // room panes
     this.roomPanels = new Notebook();
-    ChatPane welcomePane = new ChatPane();
 
+    ChatPane welcomePane = new ChatPane();
     this.currentPage = this.roomPanels.appendPage(welcomePane, "Welcome");
 
     mainBox.packStart(this.roomPanels, true, true, 0);
