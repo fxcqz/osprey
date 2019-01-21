@@ -39,6 +39,7 @@ struct Config {
     }
   }
 
+  @property
   string serverName () {
     import std.string : stripLeft;
     return this.address.stripLeft("https://");

@@ -12,6 +12,9 @@ import gtk.Grid;
 import gtk.Entry;
 import gtk.Button;
 import gtk.Widget;
+import gtk.Toolbar;
+import gtk.ToolButton;
+import gtk.Dialog;
 
 import glib.Timeout;
 
@@ -138,6 +141,42 @@ class MainFrame : MainWindow {
     this.inputText.setText("");
   }
 
+  /// onLogin
+  /// `ToolButton` dispatch for logging in to matrix, fired from the `clicked`
+  /// event.
+  void onLogin(ToolButton tb) {
+    this.connection.login();
+  }
+
+  ///
+  void onJoin(ToolButton tb) {
+    import std.string : startsWith;
+
+    string response = "";
+    auto dlg = new Dialog(
+      "Join a new room",
+      this,
+      DialogFlags.MODAL,
+      ["Ok", "Cancel"],
+      [ResponseType.ACCEPT, ResponseType.CANCEL]
+    );
+    scope (exit) dlg.destroy();
+
+    auto roomEntry = new Entry();
+    auto vbox = dlg.getContentArea();
+    vbox.add(new Label("Enter a room name"));
+    vbox.add(roomEntry);
+    dlg.showAll();
+
+    if (dlg.run() == ResponseType.ACCEPT) {
+      string roomName = roomEntry.getText();
+      if (roomName.length > 0 && roomName.startsWith("#")) {
+        response = roomName ~ ":" ~ this.connection.config.serverName();
+        this.joinRoom(response);
+      }
+    }
+  }
+
   /// onSendMessage
   /// `Entry` dispatch for `onSendMessage`, fired from the `activate` event.
   /// This immediately calls `onSendMessage()` with no arguments.
@@ -156,9 +195,25 @@ class MainFrame : MainWindow {
     this.updateChat();
   }
 
+  void createToolbar(Box mainBox) {
+    Toolbar tb = new Toolbar();
+
+    auto btnLogin = new ToolButton(StockID.NETWORK);
+    btnLogin.setLabel("Login");
+    btnLogin.addOnClicked(&this.onLogin);
+    tb.insert(btnLogin);
+
+    auto btnAdd = new ToolButton(StockID.ADD);
+    btnAdd.setLabel("Join Room");
+    btnAdd.addOnClicked(&this.onJoin);
+    tb.insert(btnAdd);
+
+    mainBox.packStart(tb, false, false, 0);
+  }
+
   this() {
     super("Osprey Client");
-    setDefaultSize(640, 480);
+    setDefaultSize(1024, 768);
 
     // setup matrix stuff
     Config config = Config("config.json");
@@ -166,6 +221,9 @@ class MainFrame : MainWindow {
 
     // setup layout stuff
     auto mainBox = new Box(Orientation.VERTICAL, 0);
+
+    // toolbar
+    this.createToolbar(mainBox);
 
     // room panes
     this.roomPanels = new Notebook();
