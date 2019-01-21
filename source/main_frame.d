@@ -163,6 +163,10 @@ class MainFrame : MainWindow {
     scope (exit) dlg.destroy();
 
     auto roomEntry = new Entry();
+    roomEntry.addOnActivate(delegate void(Entry widget) {
+      dlg.response(ResponseType.ACCEPT);
+    });
+
     auto vbox = dlg.getContentArea();
     vbox.add(new Label("Enter a room name"));
     vbox.add(roomEntry);
