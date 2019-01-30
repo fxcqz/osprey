@@ -133,6 +133,20 @@ public:
     info("Successfully logged in");
   }
 
+  string[string] getRoomMembers(string roomId) {
+    string[string] result;
+    string url = this.buildUrl("rooms/%s/joined_members".format(roomId));
+    try {
+      JSONValue response = parseJSON(get(url));
+      foreach (string userId, ref userData; response["joined"]) {
+        result[userId] = userData["display_name"].str;
+      }
+    } catch (JSONException e) {
+      warning("Warning: Unable to get members for room: ", roomId);
+    }
+    return result;
+  }
+
   bool join (string[] rooms ...)
   in (this.accessToken.length > 0, "Must be logged in first")
   // TODO this contract is meaningless for an existing connection
@@ -144,7 +158,12 @@ public:
       string tr = translate(room, trTable);
       try {
         JSONValue response = parseJSON(post(this.buildUrl("join/%s".format(tr)), `{}`));
-        this.rooms ~= new Room(response["room_id"].str);
+        string roomId = response["room_id"].str;
+
+        Room newRoom = new Room(roomId);
+        newRoom.setMembers(this.getRoomMembers(roomId));
+        this.rooms ~= newRoom;
+
         info("Successfully joined room: ", room);
         return true;
       } catch (JSONException e) {
@@ -185,7 +204,8 @@ public:
           JSONValue events = roomData[id]["timeline"]["events"];
           foreach (event; events.array) {
             if ("body" in event["content"]) {
-              room.buffer ~= "<%s> %s".format(event["sender"].str, event["content"]["body"].str);
+              string user = room.members[event["sender"].str];
+              room.buffer ~= "<%s> %s".format(user, event["content"]["body"].str);
             }
           }
         }
