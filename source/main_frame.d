@@ -21,6 +21,7 @@ import glib.Timeout;
 import commands;
 import matrix;
 import room;
+import ui : LoginDialog;
 
 
 class ChatPane : ScrolledWindow {
@@ -145,7 +146,34 @@ class MainFrame : MainWindow {
   /// `ToolButton` dispatch for logging in to matrix, fired from the `clicked`
   /// event.
   void onLogin(ToolButton tb) {
-    this.connection.login();
+    import std.file : exists;
+    if (exists("config.json")) {
+      // read from the existing file
+      Config conf = Config("config.json");
+      this.connection.setConfig(conf);
+      this.connection.login();
+    } else {
+      auto dlg = new LoginDialog(this);
+      scope (exit) dlg.destroy();
+
+      dlg.showAll();
+
+      if (dlg.run() == ResponseType.ACCEPT) {
+        Config conf = Config(
+          dlg.usernameEntry.getText(),
+          dlg.passwordEntry.getText(),
+          dlg.addressEntry.getText(),
+        );
+
+        this.connection.setConfig(conf);
+        this.connection.login();
+
+        if (this.connection.connected && dlg.rememberMe.getActive()) {
+          // only write config if we successfully connected
+          conf.save("config.json");
+        }
+      }
+    }
   }
 
   ///
@@ -220,8 +248,7 @@ class MainFrame : MainWindow {
     setDefaultSize(1024, 768);
 
     // setup matrix stuff
-    Config config = Config("config.json");
-    this.connection = new Matrix(config);
+    this.connection = new Matrix();
 
     // setup layout stuff
     auto mainBox = new Box(Orientation.VERTICAL, 0);

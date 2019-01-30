@@ -44,6 +44,16 @@ struct Config {
     import std.string : stripLeft;
     return this.address.stripLeft("https://");
   }
+
+  void save(string filename) {
+    import std.file : write;
+    JSONValue data = [
+      "username" : this.username,
+      "password" : this.password,
+      "address" : this.address,
+    ];
+    write(filename, data.toPrettyString);
+  }
 }
 
 class Matrix {
@@ -88,9 +98,17 @@ public:
   Room[] rooms;
   bool connected = false;
 
+  this () {
+    this.httpClient = HTTP();
+  }
+
   this (Config config) {
     this.config = config;
     this.httpClient = HTTP();
+  }
+
+  void setConfig(Config config) {
+    this.config = config;
   }
 
   void login ()
