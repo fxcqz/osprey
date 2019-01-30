@@ -40,6 +40,8 @@ class ChatPane : ScrolledWindow {
     Label user = new Label(message[0]);
     user.setSelectable(true);
     user.setXalign(1);
+    user.setMaxWidthChars(30);
+    user.setLineWrap(true);
     Label text = new Label(message[1]);
     text.setSelectable(true);
     text.setXalign(0);
