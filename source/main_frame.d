@@ -57,7 +57,7 @@ class MainFrame : MainWindow {
   // use getNthPage with this id to obtain the room widget
   int currentPage;
   // map room id's to room objects (would this be better with page id?)
-  Room[string] rooms;
+  Room[int] rooms;
   Room currentRoom;
   // main matrix connection member
   Matrix connection;
@@ -74,6 +74,25 @@ class MainFrame : MainWindow {
     this.connection.extractMessages(data);
   }
 
+  void startUpdateTimeout() {
+    if (this.updateTimeout is null) {
+      this.updateTimeout = new Timeout(&this.updateChat, 1, true);
+      this.roomPanels.addOnSwitchPage(&this.switchPage);
+    }
+  }
+
+  void joinInitialRooms() {
+    foreach (room; this.connection.rooms) {
+      auto pane = new ChatPane();
+      this.currentPage = this.roomPanels.appendPage(pane, room.roomID);
+      this.rooms[this.currentPage] = room;
+    }
+    this.roomPanels.setCurrentPage(this.currentPage);
+    this.currentRoom = this.connection.rooms[$ - 1];
+    this.startUpdateTimeout();
+    this.showAll();
+  }
+
   void joinRoom(string room) {
     bool connected = this.connection.join(room);
     if (connected) {
@@ -86,14 +105,9 @@ class MainFrame : MainWindow {
 
       // most recently added room is the relevant one
       this.currentRoom = this.connection.rooms[$ - 1];
-      this.rooms[this.currentRoom.roomID] = this.currentRoom;
+      this.rooms[this.currentPage] = this.currentRoom;
 
-      // a bit hacky, perhaps use a connected flag instead of this condition
-      if (this.updateTimeout is null) {
-        this.updateTimeout = new Timeout(&this.updateChat, 1, true);
-        // add the listener once we are connected to at least one room
-        this.roomPanels.addOnSwitchPage(&this.switchPage);
-      }
+      this.startUpdateTimeout();
     }
   }
 
@@ -181,6 +195,11 @@ class MainFrame : MainWindow {
         }
       }
     }
+
+    // join initial rooms
+    if (this.connection.rooms.length > 0) {
+      this.joinInitialRooms();
+    }
   }
 
   ///
@@ -231,6 +250,8 @@ class MainFrame : MainWindow {
   }
 
   void switchPage(Widget panel, uint id, Notebook nb) {
+    this.currentPage = id;
+    this.currentRoom = this.rooms[id];
     this.updateChat();
   }
 
@@ -265,9 +286,6 @@ class MainFrame : MainWindow {
 
     // room panes
     this.roomPanels = new Notebook();
-
-    ChatPane welcomePane = new ChatPane();
-    this.currentPage = this.roomPanels.appendPage(welcomePane, "Welcome");
 
     mainBox.packStart(this.roomPanels, true, true, 0);
 

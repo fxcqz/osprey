@@ -114,6 +114,21 @@ public:
     this.config = config;
   }
 
+  void initialSync() {
+    string url = this.buildUrl("joined_rooms");
+    JSONValue response = parseJSON(get(url));
+    foreach (ref roomID; response["joined_rooms"].array) {
+      this.rooms ~= new Room(roomID.str, this.getRoomMembers(roomID.str));
+    }
+    JSONValue data = this.sync();
+    this.extractMessages(data);
+    import std.stdio : writeln;
+    foreach (ref room; this.rooms) {
+      writeln(room.roomID);
+      writeln(room.buffer);
+    }
+  }
+
   void login ()
   out (; this.accessToken.length > 0, "Login must set an access token")
   out (; this.userID.length > 0, "Login must set a user ID")
@@ -127,6 +142,7 @@ public:
       JSONValue response = parseJSON(post(url, data));
       this.accessToken = response["access_token"].str;
       this.userID = response["user_id"].str;
+      this.initialSync();
     } catch (JSONException e) {
       fatal("Error: Unable to login to the server");
       exit(-1);
@@ -163,9 +179,7 @@ public:
         JSONValue response = parseJSON(post(this.buildUrl("join/%s".format(tr)), `{}`));
         string roomId = response["room_id"].str;
 
-        Room newRoom = new Room(roomId);
-        newRoom.setMembers(this.getRoomMembers(roomId));
-        this.rooms ~= newRoom;
+        this.rooms ~= new Room(roomId, this.getRoomMembers(roomId));
 
         info("Successfully joined room: ", room);
         return true;

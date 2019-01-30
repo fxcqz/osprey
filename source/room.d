@@ -8,11 +8,8 @@ class Room {
   // TODO buffer should be something better than string[]
   Message[] buffer;
 
-  this (string id) {
+  this (string id, string[string] members) {
     this.roomID = id;
-  }
-
-  void setMembers(string[string] members) {
     this.members = members;
   }
 }
