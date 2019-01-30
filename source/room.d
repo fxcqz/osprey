@@ -1,10 +1,12 @@
 module room;
 
+import matrix : Message;
+
 class Room {
   string roomID;
   string[string] members;
   // TODO buffer should be something better than string[]
-  string[] buffer;
+  Message[] buffer;
 
   this (string id) {
     this.roomID = id;

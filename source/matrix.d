@@ -6,8 +6,11 @@ import std.experimental.logger : fatal, info, warning;
 import std.format : format;
 import std.json : JSONException, JSONValue, parseJSON;
 import std.net.curl : CurlException, get, HTTP, post, put;
+import std.typecons : Tuple;
 
 import room;
+
+alias Message = Tuple!(string, string);
 
 static immutable string[string] NULL_PARAMS;
 
@@ -205,7 +208,7 @@ public:
           foreach (event; events.array) {
             if ("body" in event["content"]) {
               string user = room.members[event["sender"].str];
-              room.buffer ~= "<%s> %s".format(user, event["content"]["body"].str);
+              room.buffer ~= Message(user, event["content"]["body"].str);
             }
           }
         }

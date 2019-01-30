@@ -32,15 +32,20 @@ class ChatPane : ScrolledWindow {
     // TODO make messages stick to the bottom
     super();
     this.grid = new Grid();
+    this.grid.setColumnSpacing(10);
     this.add(this.grid);
   }
 
-  void addMessage(string message) {
-    Label label = new Label(message);
-    label.setSelectable(true);
-    label.setXalign(0);
-    label.setLineWrap(true);
-    this.grid.attach(label, 0, this.currentLine, 1, 1);
+  void addMessage(Message message) {
+    Label user = new Label(message[0]);
+    user.setSelectable(true);
+    user.setXalign(1);
+    Label text = new Label(message[1]);
+    text.setSelectable(true);
+    text.setXalign(0);
+    text.setLineWrap(true);
+    this.grid.attach(user, 0, this.currentLine, 1, 1);
+    this.grid.attach(text, 1, this.currentLine, 1, 1);
     this.currentLine += 1;
   }
 }
