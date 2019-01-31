@@ -5,8 +5,9 @@ import std.conv : to;
 import std.experimental.logger : fatal, info, warning;
 import std.format : format;
 import std.json : JSONException, JSONValue, parseJSON;
-import std.net.curl : CurlException, get, HTTP, post, put;
+import std.net.curl : CurlException, get, HTTP, HTTPStatusException, post, put;
 import std.typecons : Tuple;
+import std.string : translate;
 
 import room;
 
@@ -100,14 +101,16 @@ public:
   Config config;
   Room[] rooms;
   bool connected = false;
+  string[dchar] trTable;
 
   this () {
     this.httpClient = HTTP();
+    this.trTable = ['#' : "%23", ':' : "%3A", '!' : "%21"];
   }
 
   this (Config config) {
     this.config = config;
-    this.httpClient = HTTP();
+    this();
   }
 
   void setConfig(Config config) {
@@ -122,11 +125,6 @@ public:
     }
     JSONValue data = this.sync();
     this.extractMessages(data);
-    import std.stdio : writeln;
-    foreach (ref room; this.rooms) {
-      writeln(room.roomID);
-      writeln(room.buffer);
-    }
   }
 
   void login ()
@@ -166,13 +164,36 @@ public:
     return result;
   }
 
+  // https://matrix.org/docs/spec/client_server/r0.4.0.html#calculating-the-display-name-for-a-room
+  string getRoomName(string roomId) {
+    string tr = translate(roomId, trTable);
+    string baseUrl = "rooms/%s/state/%s";
+    string url = this.buildUrl(baseUrl.format(tr, "m.room.name"));
+    try {
+      JSONValue response = parseJSON(get(url));
+      return response["name"].str;
+    } catch (HTTPStatusException e) {
+      if (e.status != 404) {
+        return roomId;
+      }
+    }
+
+    url = this.buildUrl(baseUrl.format(tr, "m.room.canonical_alias"));
+    try {
+      JSONValue response = parseJSON(get(url));
+      return response["alias"].str;
+    } catch (CurlException e) {
+    } catch (JSONException e) {
+    }
+
+    return roomId;
+  }
+
   bool join (string[] rooms ...)
   in (this.accessToken.length > 0, "Must be logged in first")
   // TODO this contract is meaningless for an existing connection
   out (; this.rooms.length > 0, "Must have joined at least one room")
   do {
-    import std.string : translate;
-    string[dchar] trTable = ['#' : "%23", ':' : "%3A"];
     foreach (room; rooms) {
       string tr = translate(room, trTable);
       try {

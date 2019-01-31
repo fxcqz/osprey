@@ -84,7 +84,7 @@ class MainFrame : MainWindow {
   void joinInitialRooms() {
     foreach (room; this.connection.rooms) {
       auto pane = new ChatPane();
-      this.currentPage = this.roomPanels.appendPage(pane, room.roomID);
+      this.currentPage = this.roomPanels.appendPage(pane, this.connection.getRoomName(room.roomID));
       this.rooms[this.currentPage] = room;
     }
     this.roomPanels.setCurrentPage(this.currentPage);
@@ -99,12 +99,14 @@ class MainFrame : MainWindow {
       // setup ui for new room
       auto pane = new ChatPane();
 
-      this.currentPage = this.roomPanels.appendPage(pane, room);
+      // most recently added room is the relevant one
+      this.currentRoom = this.connection.rooms[$ - 1];
+
+      this.currentPage = this.roomPanels.appendPage(
+          pane, this.connection.getRoomName(this.currentRoom.roomID));
       this.showAll();
       this.roomPanels.setCurrentPage(this.currentPage);
 
-      // most recently added room is the relevant one
-      this.currentRoom = this.connection.rooms[$ - 1];
       this.rooms[this.currentPage] = this.currentRoom;
 
       this.startUpdateTimeout();
