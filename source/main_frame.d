@@ -27,6 +27,7 @@ import ui : LoginDialog;
 class ChatPane : ScrolledWindow {
   Grid grid;
   int currentLine;
+  string prevUser;
 
   this() {
     // TODO make messages stick to the bottom
@@ -37,18 +38,24 @@ class ChatPane : ScrolledWindow {
   }
 
   void addMessage(Message message) {
-    Label user = new Label(message[0]);
-    user.setSelectable(true);
-    user.setXalign(1);
-    user.setMaxWidthChars(30);
-    user.setLineWrap(true);
+    import std.algorithm : min;
+    if (message[0] != this.prevUser) {
+      Label user = new Label(message[0]);
+      user.setMarginStart(10);
+      user.setMarginTop(5);
+      user.setXalign(0);
+      user.setMaxWidthChars(30);
+      this.grid.attach(user, 0, this.currentLine, 1, 1);
+    }
     Label text = new Label(message[1]);
+    text.setMarginStart(30);
     text.setSelectable(true);
     text.setXalign(0);
     text.setLineWrap(true);
-    this.grid.attach(user, 0, this.currentLine, 1, 1);
-    this.grid.attach(text, 1, this.currentLine, 1, 1);
-    this.currentLine += 1;
+    this.grid.attach(text, 0, this.currentLine + 1, 1, 1);
+    this.currentLine += 2;
+
+    this.prevUser = message[0];
   }
 }
 
