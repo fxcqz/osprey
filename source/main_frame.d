@@ -295,6 +295,7 @@ class MainFrame : MainWindow {
 
     // room panes
     this.roomPanels = new Notebook();
+    this.roomPanels.setScrollable(true);
 
     mainBox.packStart(this.roomPanels, true, true, 0);
 
